@@ -4,6 +4,7 @@ import shutil
 import sys
 import tempfile
 import zipfile
+import pickle
 from distutils.util import change_root
 from email.parser import FeedParser
 
@@ -237,6 +238,12 @@ class InstallRequirement(object):
         self._egg_info_path = None
 
     @property
+    def setup_requires_location(self):
+        if not hasattr(self, "_setup_requires_location"):
+            self._setup_requires_location = tempfile.mkdtemp()
+        return self._setup_requires_location
+
+    @property
     def name(self):
         if self.req is None:
             return None
@@ -303,6 +310,14 @@ class InstallRequirement(object):
                 rmtree(os.path.join(self.source_dir, 'distribute.egg-info'))
 
             script = self._run_setup_py
+            script = script.replace(
+                '__SYSARGS__',
+                repr(pickle.dumps(sys.argv, pickle.HIGHEST_PROTOCOL)),
+            )
+            script = script.replace(
+                '__SETUP_REQUIRES_DIR__',
+                repr(self.setup_requires_location),
+            )
             script = script.replace('__SETUP_PY__', repr(self.setup_py))
             script = script.replace('__PKG_NAME__', repr(self.name))
             egg_info_cmd = [sys.executable, '-c', script, 'egg_info']
@@ -338,6 +353,17 @@ class InstallRequirement(object):
     ## a self-provided entry point that causes this awkwardness
     _run_setup_py = """
 __file__ = __SETUP_PY__
+
+# This horror allows us to install setup_requires instead of setuptools
+import pickle
+import distutils.core
+import pip.hacks.setuptools
+distutils.core.setup = pip.hacks.setuptools.mksetup(
+    distutils.core.setup,
+    pickle.loads(__SYSARGS__),
+    __SETUP_REQUIRES_DIR__,
+)
+
 from setuptools.command import egg_info
 import pkg_resources
 import os
@@ -726,9 +752,17 @@ exec(compile(
             install_args = [sys.executable]
             install_args.append('-c')
             install_args.append(
+                "import pickle;import distutils.core;"
+                "import pip.hacks.setuptools;"
+                "distutils.core.setup ="
+                "pip.hacks.setuptools.mksetup_no_install("
+                "distutils.core.setup, %r);"
                 "import setuptools, tokenize;__file__=%r;"
                 "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
-                ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py
+                ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % (
+                    self.setup_requires_location,
+                    self.setup_py,
+                )
             )
             install_args += list(global_options) + \
                 ['install', '--record', record_filename]
@@ -836,9 +870,17 @@ exec(compile(
                 [
                     sys.executable,
                     '-c',
+                    "import pickle;import distutils.core;"
+                    "import pip.hacks.setuptools;"
+                    "distutils.core.setup ="
+                    "pip.hacks.setuptools.mksetup_no_install("
+                    "distutils.core.setup, %r);"
                     "import setuptools, tokenize; __file__=%r; exec(compile("
                     "getattr(tokenize, 'open', open)(__file__).read().replace"
-                    "('\\r\\n', '\\n'), __file__, 'exec'))" % self.setup_py
+                    "('\\r\\n', '\\n'), __file__, 'exec'))" % (
+                        self.setup_requires_location,
+                        self.setup_py,
+                    )
                 ]
                 + list(global_options)
                 + ['develop', '--no-deps']
