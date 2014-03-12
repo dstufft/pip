@@ -355,29 +355,18 @@ class InstallRequirement(object):
 __file__ = __SETUP_PY__
 
 # This horror allows us to install setup_requires instead of setuptools
-import pickle
 import distutils.core
 import pip.hacks.setuptools
 distutils.core.setup = pip.hacks.setuptools.mksetup(
     distutils.core.setup,
-    pickle.loads(__SYSARGS__),
+    # pickle.loads(__SYSARGS__),
     __SETUP_REQUIRES_DIR__,
 )
 
-from setuptools.command import egg_info
-import pkg_resources
+import setuptools
 import os
 import tokenize
-def replacement_run(self):
-    self.mkpath(self.egg_info)
-    installer = self.distribution.fetch_build_egg
-    for ep in pkg_resources.iter_entry_points('egg_info.writers'):
-        # require=False is the change we're making:
-        writer = ep.load(require=False)
-        if writer:
-            writer(self, ep.name, os.path.join(self.egg_info,ep.name))
-    self.find_sources()
-egg_info.egg_info.run = replacement_run
+
 exec(compile(
     getattr(tokenize, 'open', open)(__file__).read().replace('\\r\\n', '\\n'),
     __file__,
@@ -752,11 +741,9 @@ exec(compile(
             install_args = [sys.executable]
             install_args.append('-c')
             install_args.append(
-                "import pickle;import distutils.core;"
-                "import pip.hacks.setuptools;"
-                "distutils.core.setup ="
-                "pip.hacks.setuptools.mksetup_no_install("
-                "distutils.core.setup, %r);"
+                "import distutils.core;import pip.hacks.setuptools;"
+                "distutils.core.setup = pip.hacks.setuptools.mksetup("
+                "distutils.core.setup,%r);"
                 "import setuptools, tokenize;__file__=%r;"
                 "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
                 ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % (
@@ -870,11 +857,9 @@ exec(compile(
                 [
                     sys.executable,
                     '-c',
-                    "import pickle;import distutils.core;"
-                    "import pip.hacks.setuptools;"
-                    "distutils.core.setup ="
-                    "pip.hacks.setuptools.mksetup_no_install("
-                    "distutils.core.setup, %r);"
+                    "import distutils.core;import pip.hacks.setuptools;"
+                    "distutils.core.setup = pip.hacks.setuptools.mksetup("
+                    "distutils.core.setup,%r);"
                     "import setuptools, tokenize; __file__=%r; exec(compile("
                     "getattr(tokenize, 'open', open)(__file__).read().replace"
                     "('\\r\\n', '\\n'), __file__, 'exec'))" % (
