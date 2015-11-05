@@ -1,13 +1,74 @@
 import codecs
 import os
 import re
+import stat
 import sys
+import zipfile
+
+from distutils import log
+from distutils.core import Command
 
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 
 here = os.path.abspath(os.path.dirname(__file__))
+
+MAIN_PY = b"""
+#!python
+import sys
+
+from pip.__main__ import main
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+""".lstrip()
+
+
+class BuildExecutable(Command):
+
+    user_options = [
+        ("build-executable=", None, "The build directory for the executable."),
+    ]
+
+    def initialize_options(self):
+        self.build_executable = None
+
+    def finalize_options(self):
+        build_ci = self.get_finalized_command("build")
+        build_base = build_ci.build_base
+
+        if self.build_executable is None:
+            self.build_executable = os.path.join(build_base, "exe")
+
+    def run(self):
+        self.run_command("build")
+
+        build_ci = self.get_finalized_command("build")
+        lib_dir = build_ci.build_lib
+
+        log.info("creating the executable.")
+
+        try:
+            os.makedirs(self.build_executable)
+        except IOError:
+            pass
+
+        exe = os.path.join(self.build_executable, "pip.exe")
+
+        with zipfile.PyZipFile(exe, "w", optimize=0) as pyz:
+            # Add the items that we included as part of our source code into
+            # the zip file.
+            for dirname in sorted(os.listdir(lib_dir)):
+                pyz.writepy(os.path.join(lib_dir, dirname))
+
+            # Add the __main__.py
+            pyz.writestr("__main__.py", MAIN_PY)
+
+        # Mark our file as executable
+        mode = os.stat(exe).st_mode
+        os.chmod(exe, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 class PyTest(TestCommand):
@@ -87,5 +148,8 @@ setup(
     extras_require={
         'testing': tests_require,
     },
-    cmdclass={'test': PyTest},
+    cmdclass={
+        'build_executable': BuildExecutable,
+        'test': PyTest,
+    },
 )
