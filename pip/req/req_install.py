@@ -13,9 +13,9 @@ from distutils.util import change_root
 from distutils import sysconfig
 from email.parser import FeedParser
 
-from pip._vendor import pkg_resources, six
-from pip._vendor.distlib.markers import interpret as markers_interpret
-from pip._vendor.six.moves import configparser
+import pkg_resources, six
+from distlib.markers import interpret as markers_interpret
+from six.moves import configparser
 
 import pip.wheel
 
@@ -37,7 +37,7 @@ from pip.utils.logging import indent_log
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
 from pip.wheel import move_wheel_files, Wheel
-from pip._vendor.packaging.version import Version
+from packaging.version import Version
 
 
 logger = logging.getLogger(__name__)

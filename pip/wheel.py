@@ -21,7 +21,7 @@ import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip._vendor.six import StringIO
+from six import StringIO
 
 import pip
 from pip.compat import expanduser
@@ -33,9 +33,10 @@ from pip import pep425tags
 from pip.utils import (
     call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name)
 from pip.utils.logging import indent_log
-from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor import pkg_resources
-from pip._vendor.six.moves import configparser
+
+from distlib.scripts import ScriptMaker
+import pkg_resources
+from six.moves import configparser
 
 
 wheel_ext = '.whl'

@@ -20,10 +20,10 @@ from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file,
 )
-from pip._vendor import pkg_resources
-from pip._vendor.six.moves import input
-from pip._vendor.six import PY2
-from pip._vendor.retrying import retry
+import pkg_resources
+from six.moves import input
+from six import PY2
+from retrying import retry
 
 if PY2:
     from io import BytesIO as StringIO

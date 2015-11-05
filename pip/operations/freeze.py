@@ -7,7 +7,7 @@ import pip
 from pip.compat import stdlib_pkgs
 from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions
-from pip._vendor import pkg_resources
+import pkg_resources
 
 
 logger = logging.getLogger(__name__)

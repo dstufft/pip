@@ -6,8 +6,8 @@ import itertools
 import logging
 import os
 
-from pip._vendor import pkg_resources
-from pip._vendor import requests
+import pkg_resources
+import requests
 
 from pip.compat import expanduser
 from pip.download import (url_to_path, unpack_url)

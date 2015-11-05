@@ -10,8 +10,8 @@ import shlex
 import optparse
 import warnings
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves import filterfalse
+from six.moves.urllib import parse as urllib_parse
+from six.moves import filterfalse
 
 import pip
 from pip.download import get_file_content

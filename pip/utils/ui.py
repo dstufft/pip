@@ -8,13 +8,13 @@ from signal import signal, SIGINT, default_int_handler
 from pip.compat import WINDOWS
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
-from pip._vendor import six
-from pip._vendor.progress.bar import Bar, IncrementalBar
-from pip._vendor.progress.helpers import WritelnMixin
-from pip._vendor.progress.spinner import Spinner
+import six
+from progress.bar import Bar, IncrementalBar
+from progress.helpers import WritelnMixin
+from progress.spinner import Spinner
 
 try:
-    from pip._vendor import colorama
+    import colorama
 # Lots of different errors can come from this, including SystemError and
 # ImportError.
 except Exception:

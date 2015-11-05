@@ -7,6 +7,7 @@ import zipfile
 
 from distutils import log
 from distutils.core import Command
+from distutils.spawn import spawn
 
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
@@ -26,14 +27,34 @@ if __name__ == "__main__":
 """.lstrip()
 
 
+def _recursive_zip_dir(zfile, dirname):
+    for root, dirs, files in os.walk(dirname):
+        for d in list(dirs):
+            if d.endswith((".egg-info", ".dist-info")):
+                dirs.remove(d)
+
+        for filename in files:
+            if filename.endswith((".pyc", ".pyo")):
+                continue
+
+            arcname = os.path.join(os.path.relpath(root, dirname), filename)
+            zfile.write(os.path.join(root, filename), arcname)
+
+
 class BuildExecutable(Command):
 
     user_options = [
         ("build-executable=", None, "The build directory for the executable."),
+        (
+            "build-deps=",
+            None,
+            "The build directory for the executable dependencies.",
+        ),
     ]
 
     def initialize_options(self):
         self.build_executable = None
+        self.build_deps = None
 
     def finalize_options(self):
         build_ci = self.get_finalized_command("build")
@@ -42,11 +63,26 @@ class BuildExecutable(Command):
         if self.build_executable is None:
             self.build_executable = os.path.join(build_base, "exe")
 
+        if self.build_deps is None:
+            self.build_deps = os.path.join(build_base, "deps")
+
     def run(self):
         self.run_command("build")
 
         build_ci = self.get_finalized_command("build")
         lib_dir = build_ci.build_lib
+
+        log.info("installing the dependencies.")
+        if self.distribution.install_requires:
+            # TODO: There is a bootstrapping problem here, you need pip
+            # installed to build pip, how do we solve this?
+            spawn(
+                [
+                    "pip", "install", "--no-compile", "--no-deps", "--upgrade",
+                    "--target", self.build_deps,
+                ] +
+                self.distribution.install_requires
+            )
 
         log.info("creating the executable.")
 
@@ -57,11 +93,13 @@ class BuildExecutable(Command):
 
         exe = os.path.join(self.build_executable, "pip.exe")
 
-        with zipfile.PyZipFile(exe, "w", optimize=0) as pyz:
+        with zipfile.ZipFile(exe, "w") as pyz:
             # Add the items that we included as part of our source code into
             # the zip file.
-            for dirname in sorted(os.listdir(lib_dir)):
-                pyz.writepy(os.path.join(lib_dir, dirname))
+            _recursive_zip_dir(pyz, lib_dir)
+
+            # Add the dependencies into our zip.
+            _recursive_zip_dir(pyz, self.build_deps)
 
             # Add the __main__.py
             pyz.writestr("__main__.py", MAIN_PY)
@@ -152,4 +190,18 @@ setup(
         'build_executable': BuildExecutable,
         'test': PyTest,
     },
+    install_requires=[
+        "distlib==0.2.1",
+        "html5lib==1.0b5",
+        "six==1.9.0",
+        "colorama==0.3.3",
+        "requests==2.7.0",
+        "CacheControl==0.11.5",
+        "lockfile==0.10.2",
+        "progress==1.2",
+        "ipaddress==1.0.14",  # Only needed on 2.6 and 2.7
+        "packaging==15.3",
+        "retrying==1.3.3",
+        "setuptools==18.5",
+    ],
 )

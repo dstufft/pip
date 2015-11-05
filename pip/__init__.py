@@ -16,7 +16,7 @@ from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import get_summaries, get_similar_commands
 from pip.commands import commands_dict
-from pip._vendor.requests.packages.urllib3.exceptions import (
+from requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
 
